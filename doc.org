@@ -1,0 +1,20 @@
+Oi Luis,
+
+tudo bem?
+Que bom que vai chegar daqui a pouco ao Rio.
+Como combinado com a Denise, compartilhei com você uma pasta no Dropbox (spectra_luis).
+https://www.dropbox.com/scl/fo/e1b3poktg6cg3lp5nrhv5/h?rlkey=dlpg4lxow47xnzryukn30w7n3&dl=0
+
+Lá encontra os 4 espectros que gostaríamos de mostrar no artigo.
+Vou colocar também um arquivo com os redshifts das galáxias.
+
+Se possível poderia também fazer uma "limpeza" nos espectros?
+Um dos CCDs  do GMOS tinha um problema, então todos vão apresentar uns spikes grandes na região de 600 e pouco nm, como pode ver na imagem abaixo.
+Este até tem uns spikes negativos em ~540 - 550 nm e outro logo no início em 428 nm.
+image.png
+
+Umas linhas que para o trabalho são importantes para mostrar são a do [OIII]4363 e as do dubleto [OII]7320,7330. Seria possível incluir nas figuras duas sub-janelas (uma na parte azul e outra na parte vermelha)  com o zoom destas linhas mais fracas?
+
+Tipo algo assim?
+
+https://academic.oup.com/mnras/article/482/3/3803/5159478
