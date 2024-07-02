@@ -1,0 +1,128 @@
+import concurrent.futures
+import pandas as pd
+import splusdata
+import os
+import logging
+
+def setup_logging():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def check_environment_variables():
+    username = os.environ.get('SPLUS_USERNAME')
+    password = os.environ.get('SPLUS_PASSWORD')
+    
+    if not (username and password):
+        raise ValueError("SPLUS_USERNAME and SPLUS_PASSWORD environment variables are required.")
+
+def process_field(field, query_template):
+    logging.info(f"Running for: {field}")
+    query = query_template.format(field=field)
+
+    username = os.environ.get('SPLUS_USERNAME')
+    password = os.environ.get('SPLUS_PASSWORD')
+
+    conn = splusdata.connect(username, password)
+    try:
+        tab = conn.query(query).to_pandas()
+        logging.info(f"Found: {len(tab)} objects for {field}")
+        return tab
+    except Exception as e:
+        logging.error(f"Error in query for field {field}: {e}")
+        return pd.DataFrame()
+
+def main(test_mode=False):
+    setup_logging()
+    check_environment_variables()
+    
+    query_template = """
+        SELECT 
+            det.Field, det.ID, det.RA, det.DEC, det.X, det.Y,
+            det.FWHM,  det.FWHM_n, det.ISOarea, det.KRON_RADIUS, 
+            det.MU_MAX_INST, det.PETRO_RADIUS, det.SEX_FLAGS_DET, det.SEX_NUMBER_DET,
+            det.s2n_DET_PStotal, det.THETA,
+        
+            r.r_pstotal, r.e_r_pstotal,
+            g.g_pstotal, g.e_g_pstotal,
+            i.i_pstotal, i.e_i_pstotal,
+            u.u_pstotal, u.e_u_pstotal,
+            z.z_pstotal, z.e_z_pstotal,
+            j0378.j0378_pstotal, j0378.e_j0378_pstotal,
+            j0395.j0395_pstotal, j0395.e_j0395_pstotal,
+            j0410.j0410_pstotal, j0410.e_j0410_pstotal,
+            j0430.j0430_pstotal, j0430.e_j0430_pstotal,
+            j0515.j0515_pstotal, j0515.e_j0515_pstotal,
+            j0660.j0660_pstotal, j0660.e_j0660_pstotal,
+            j0861.j0861_pstotal, j0861.e_j0861_pstotal,
+        
+            rs.r_psf, rs.e_r_psf,
+            gs.g_psf, gs.e_g_psf,
+            isf.i_psf, isf.e_i_psf, -- isf (is -> reserved)
+            us.u_psf, us.e_u_psf,
+            zs.z_psf, zs.e_z_psf,
+            j0378s.j0378_psf, j0378s.e_j0378_psf,
+            j0395s.j0395_psf, j0395s.e_j0395_psf,
+            j0410s.j0410_psf, j0410s.e_j0410_psf,
+            j0430s.j0430_psf, j0430s.e_j0430_psf,
+            j0515s.j0515_psf, j0515s.e_j0515_psf,
+            j0660s.j0660_psf, j0660s.e_j0660_psf,
+            j0861s.j0861_psf, j0861s.e_j0861_psf,
+            sgq.CLASS, sgq.PROB_STAR, sgq.PROB_QSO, sgq.PROB_GAL
+        
+        FROM "idr4_dual"."idr4_detection_image" AS det 
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_r" AS r ON r.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_g" AS g ON g.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_i" AS i ON i.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_z" AS z ON z.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_u" AS u ON u.id = det.id
+        
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0378" AS j0378 ON j0378.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0395" AS j0395 ON j0395.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0410" AS j0410 ON j0410.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0430" AS j0430 ON j0430.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0515" AS j0515 ON j0515.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0660" AS j0660 ON j0660.id = det.id
+        LEFT OUTER JOIN "idr4_dual"."idr4_dual_j0861" AS j0861 ON j0861.id = det.id
+        
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_r" AS rs ON rs.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_g" AS gs ON gs.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_i" AS isf ON isf.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_z" AS zs ON zs.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_u" AS us ON us.id = det.id
+        
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0378" AS j0378s ON j0378s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0395" AS j0395s ON j0395s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0410" AS j0410s ON j0410s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0430" AS j0430s ON j0430s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0515" AS j0515s ON j0515s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0660" AS j0660s ON j0660s.id = det.id
+        LEFT OUTER JOIN "idr4_psf"."idr4_psf_j0861" AS j0861s ON j0861s.id = det.id
+        
+        LEFT OUTER JOIN "idr4_vacs"."idr4_star_galaxy_quasar" AS sgq ON sgq.id = det.id
+        
+        WHERE 
+            r_pstotal <= 19.5 
+            AND e_u_PStotal <= 0.3 AND e_J0378_PStotal <= 0.3 AND e_J0395_PStotal <= 0.3 
+            AND e_J0410_PStotal <= 0.3 AND e_J0430_PStotal <= 0.3 AND e_g_PStotal <= 0.3  
+            AND e_J0515_PStotal <= 0.3 AND e_r_PStotal <= 0.3 AND e_J0660_PStotal <= 0.3
+            AND e_i_PStotal <= 0.3 AND e_J0861_PStotal <= 0.3 AND e_z_PStotal <= 0.3
+            AND "CLASS" = 1
+            AND det.field = '{field}'
+    """
+
+    fields = pd.read_csv("https://splus.cloud/files/documentation/iDR4/tabelas/iDR4_zero-points.csv")
+    
+    # Filter fields to only include HYDRA and SPLUS-d
+    filtered_fields = fields[fields['Field'].str.startswith('HYDRA') | fields['Field'].str.startswith('SPLUS-d')]
+
+    LIMIT_OBJECTS = 2000000
+    final_table = pd.DataFrame()
+
+    for field in filtered_fields["Field"] if not test_mode else filtered_fields["Field"][:5]:
+        result = process_field(field, query_template)
+        final_table = pd.concat([final_table, result])
+
+    final_table.to_csv(f"iDR4-SPLUS-PStotal-PSF-STAR_HYDRA_DISK_test.csv", index=False)
+
+if __name__ == "__main__":
+    test_mode = True  # Set this to False when you are ready to run on the entire dataset
+    main(test_mode)
